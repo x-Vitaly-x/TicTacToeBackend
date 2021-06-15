@@ -7,7 +7,7 @@ class Game < ApplicationRecord
 
   before_create :generate_board
 
-  before_save :check_winner
+  before_save :check_status
 
   #
   # Prefill the board with empty values on game initialization.
@@ -54,6 +54,24 @@ class Game < ApplicationRecord
       return false
     end
     true
+  end
+
+  #
+  # Automatically update game status based on data
+  # #
+  def check_status
+    if self.status == 'created'
+      # start game if player 1 and player 2 are there
+      if !x_player_id.nil? && !y_player_id.nil?
+        self.status = 'started'
+      end
+      return
+    end
+    if self.status == 'started'
+      # check running games
+      check_winner
+      return
+    end
   end
 
   #

@@ -1,3 +1,7 @@
 Rails.application.routes.draw do
-  resources :games
+  mount ActionCable.server => '/cable'
+
+  get 'self', to: 'players#self'
+  get 'test', to: 'games#test'
+  resources :games, :players
 end
