@@ -83,13 +83,7 @@ class Game < ApplicationRecord
   # #
   def check_winner
     winning_tile = (check_horizontal || check_vertical || check_diagonal)
-    p 'CHECK'
-    p check_horizontal
-    p check_vertical
-    p check_diagonal
-    p winning_tile
     if winning_tile
-      p 'Winnner!'
       self.status = 'finished'
     end
   end
@@ -140,7 +134,7 @@ class Game < ApplicationRecord
     (0..(BOARD_SIZE - 1)).each do |x|
       all_row_entries << board['board_fields'][x][BOARD_SIZE - 1 - x]
     end
-    if all_row_entries.length == 1 && !all_row_entries.first.blank?
+    if all_row_entries == ['X'] || all_row_entries == ['O']
       # someone won
       return all_row_entries.first
     end
