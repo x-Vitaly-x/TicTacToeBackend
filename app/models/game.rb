@@ -9,6 +9,9 @@ class Game < ApplicationRecord
 
   before_save :check_status
 
+  belongs_to :player_X, foreign_key: :x_player_id, class_name: 'Player', optional: true
+  belongs_to :player_O, foreign_key: :y_player_id, class_name: 'Player', optional: true
+
   #
   # Prefill the board with empty values on game initialization.
   # Assumption is that player X starts first
@@ -21,7 +24,7 @@ class Game < ApplicationRecord
     (0..(BOARD_SIZE - 1)).each do |x|
       board_fields[x] = []
       (0..(BOARD_SIZE - 1)).each do |y|
-        board_fields[x][y] = nil
+        board_fields[x][y] = ''
       end
     end
     self.board['board_fields'] = board_fields
@@ -34,7 +37,7 @@ class Game < ApplicationRecord
   # #
   def make_move(placement)
     unless can_place?(placement)
-      raise ActiveRecord::RecordInvalid.new(self)
+      return
     end
     new_board = board
     new_board['board_fields'][placement[1]][placement[0]] = board['current_sign']
@@ -80,8 +83,13 @@ class Game < ApplicationRecord
   # #
   def check_winner
     winning_tile = (check_horizontal || check_vertical || check_diagonal)
-    if winning_tile.blank?
-      # p 'Winnner!'
+    p 'CHECK'
+    p check_horizontal
+    p check_vertical
+    p check_diagonal
+    p winning_tile
+    if winning_tile
+      p 'Winnner!'
       self.status = 'finished'
     end
   end
@@ -92,7 +100,7 @@ class Game < ApplicationRecord
   def check_horizontal
     (0..(BOARD_SIZE - 1)).each do |y|
       all_row_entries = board['board_fields'][y].uniq
-      if all_row_entries.length == 1 && !all_row_entries.first.blank?
+      if all_row_entries == ['X'] || all_row_entries == ['O']
         # someone won
         return all_row_entries.first
       end
@@ -106,7 +114,7 @@ class Game < ApplicationRecord
   def check_vertical
     (0..(BOARD_SIZE - 1)).each do |x|
       all_row_entries = board['board_fields'].map { |entry| entry[x] }.uniq
-      if all_row_entries.length == 1 && !all_row_entries.first.blank?
+      if all_row_entries == ['X'] || all_row_entries == ['O']
         # someone won
         return all_row_entries.first
       end
@@ -123,7 +131,7 @@ class Game < ApplicationRecord
     (0..(BOARD_SIZE - 1)).each do |x|
       all_row_entries << board['board_fields'][x][x]
     end
-    if all_row_entries.length == 1 && !all_row_entries.first.blank?
+    if all_row_entries == ['X'] || all_row_entries == ['O']
       # someone won
       return all_row_entries.first
     end
@@ -148,5 +156,12 @@ class Game < ApplicationRecord
       p self.board['board_fields'][x].map { |sign| sign ? sign : ' ' }.join('|')
     end
     self
+  end
+
+  #
+  # Full representation of game with all embedded player objects
+  # #
+  def full_json
+    as_json(include: [:player_X, :player_O])
   end
 end

@@ -1,11 +1,12 @@
 class GamesController < ApplicationController
-  before_action :require_game, only: %i[show update destroy]
+  before_action :require_game, only: %i[show update destroy make_move]
 
   def create
     player = Player.find_by_player_name(create_params['player_name']);
     if player
       game = Game.create(status: 'created', x_player_id: player.id);
-      render json: game.as_json, status: 200
+      GameUpdatesChannel.push_update game
+      render json: nil, status: 201
     else
       @errors = [
         {
@@ -17,20 +18,10 @@ class GamesController < ApplicationController
     end
   end
 
-  def test
-    ActionCable.server.broadcast('test_channel', { xxx: 'tttt' })
-    render json: nil, status: 201
-  end
-
   def update
     @game.update(update_params)
-    serialized_data = @game.as_json.serializable_hash
-    ActionCable.server.broadcast 'game_updates_channel', serialized_data
-  end
-
-  def update_game_state
-    @game.update_game_state(game_state_params[:player_id], game_state_params[:placement])
-    render json: @game.as_json, status: 200, formats: :json
+    GameUpdatesChannel.push_update @game
+    render json: nil, status: 201
   end
 
   def index
@@ -44,7 +35,13 @@ class GamesController < ApplicationController
   end
 
   def show
-    render json: @game.as_json, status: 200, formats: :json
+    render json: @game.full_json, status: 200, formats: :json
+  end
+
+  def make_move
+    @game.make_move(move_params['placement'])
+    GameUpdatesChannel.push_update @game
+    render(json: nil, status: 201, formats: :json)
   end
 
   private
@@ -57,8 +54,8 @@ class GamesController < ApplicationController
     params.require(:game).permit(:y_player_id)
   end
 
-  def game_state_params
-    params.require(:game_state).permit(:player_id, placement: [])
+  def move_params
+    params.require(:game).permit(placement: [])
   end
 
   # check to see that given endpoint id is correct
